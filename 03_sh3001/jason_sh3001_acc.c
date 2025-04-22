@@ -1,27 +1,128 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/i2c.h>
+#include <linux/sensor-dev.h>
+#include <linux/types.h>
 #include "jason_sh3001.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jason Jia");
 MODULE_DESCRIPTION("A driver for sh3001 acc.");
 
-/* Standard driver model interfaces */
+/**********************************Specific**************************************/
+
+static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int8_t *buf)
+{
+    struct i2c_msg msgs[2];
+    int ret;
+
+    // 第1步：写操作，指定要读取的寄存器地址
+    msgs[0].flags = !I2C_M_RD; // 写操作标志
+    msgs[0].addr = client->addr; // 器件地址，即I2C设备的地址
+    msgs[0].len = 1; // 要发送的数据长度，这里只发送1个字节的寄存器地址
+    msgs[0].buf = &addr; // 要发送的数据，即要读取的寄存器地址
+
+    // 第2步：读操作，从指定寄存器读取数据
+    msgs[1].flags = I2C_M_RD; // 读操作标志
+    msgs[1].addr = client->addr; // 器件地址，与写操作使用相同的设备地址
+    msgs[1].len = 1; // 要读取的数据长度，这里只读取1个字节
+    msgs[1].buf = buf; // 存储读取数据的缓冲区
+
+    // 执行 I2C 传输操作，发送两个消息（写和读）
+    ret = i2c_transfer(client->adapter, msgs, 2);
+
+    if (ret != 2) {
+        dev_err(&client->dev, "I2C transfer failed: ret=%d\n", ret);
+        return JASON_SH3001_FALSE;
+    }
+
+    return JASON_SH3001_TRUE;
+}
+
+static int jason_sh3001_sensor_init(struct i2c_client *client)
+{
+    u_int8_t regData = 0;
+    int8_t i = 0;
+
+    /* The default Chip ID of this device is 0x61 */
+    while((regData != 0x61) && (i++ < 3)) {
+        if(jason_sh3001_read_reg(client, CHIP_ID, &regData) == JASON_SH3001_TRUE){
+            break;
+        }
+    }
+    if (regData != 0x61) {
+        dev_err(&client->dev, "check id error, read data:0x%x, ops->id_data:0x%x\n", regData, 0x61);
+        return JASON_SH3001_FALSE;
+    } else {
+        dev_info(&client->dev, "check id ok, read data:0x%x, ops->id_data:0x%x\n", regData, 0x61);
+    }
+
+
+    return JASON_SH3001_TRUE;
+}
+
+/**********************************General**************************************/
+
+static int sensor_init(struct i2c_client *client)
+{
+    int ret = -1;
+
+    /* Initialize sh3001 sensor */
+    ret = jason_sh3001_sensor_init(client);
+    if(ret < 0)
+        return ret;
+    dev_info(&client->dev, "Sensor initialization succeeded!\n");
+
+    return ret;
+}
+
+static int sensor_active(struct i2c_client *client, int enable, int rate)
+{
+    dev_info(&client->dev, "Enter sensor_active.\n");
+    return 0;
+}
+
+static int sensor_report_value(struct i2c_client *client)
+{
+    dev_info(&client->dev, "Enter sensor_report_value.\n");
+    return 0;
+}
+
+static struct sensor_operate jason_sh3001_ops = {
+    .name = "jason_sh3001_acc",
+    .type = SENSOR_TYPE_ACCEL,
+    .id_i2c = ACCEL_ID_SH3001,
+    .read_reg = ACC_XDATA_L,
+    .read_len = 6,
+    .id_reg = CHIP_ID,
+    .id_data = 0x61,
+    .precision = 16,
+    .ctrl_reg = -1,
+	.ctrl_data = -1,
+	.int_ctrl_reg = -1,
+	.int_status_reg = -1,
+    .range = {-32768, 32768},
+    .init = sensor_init,
+    .active = sensor_active,
+	.report	= sensor_report_value, 
+    .suspend = NULL,
+	.resume	= NULL,
+};
+
 static int sh3001_acc_probe(struct i2c_client *client, const struct i2c_device_id *dev_id)
 {
     pr_info("sh3001_acc driver module loaded.\n");
-    return 0;
+    return sensor_register_device(client, NULL, dev_id, &jason_sh3001_ops);
 }
 
 static int sh3001_acc_remove(struct i2c_client *client)
 {
     pr_info("sh3001_acc driver module unloaded.\n");
-    return 0;
+    return sensor_unregister_device(client, NULL, &jason_sh3001_ops);
 }
 
 static const struct i2c_device_id sh3001_acc_id_table[] = {
-    {"jason_sh3001_acc"},
+    {"jason_sh3001_acc", ACCEL_ID_SH3001},
     {},
 };
 

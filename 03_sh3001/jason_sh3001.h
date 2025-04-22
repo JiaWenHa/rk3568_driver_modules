@@ -1,6 +1,10 @@
 #ifndef __JASON_SH30001_H__
 #define __JASON_SH30001_H__
 
+/******************************Custom Macro************************************/
+#define JASON_SH3001_TRUE		(0)
+#define JASON_SH3001_FALSE	    (-1)
+
 /*****************************Register Descriptions****************************/
 
 /* Accelerometer Data */
