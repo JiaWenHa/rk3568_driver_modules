@@ -360,3 +360,47 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
 }
 ```
 
+## 4.5 evdev_open 函数
+
+```c
+static int evdev_open(struct inode *inode, struct file *file)
+{
+    // 使用 container_of() 宏，通过 inode->i_cdev 成员指针获取对应的 evdev 设备结构体。
+	struct evdev *evdev = container_of(inode->i_cdev, struct evdev, cdev);
+    // 计算当前输入设备的输入事件缓冲区大小
+	unsigned int bufsize = evdev_compute_buffer_size(evdev->handle.dev);
+    // 计算 evdev_client 和输入事件缓冲区大小总和
+	unsigned int size = sizeof(struct evdev_client) +
+					bufsize * sizeof(struct input_event);
+	struct evdev_client *client;
+	int error;
+
+    // 给 evdev_client 分配内存
+	client = kzalloc(size, GFP_KERNEL | __GFP_NOWARN);
+	if (!client)
+		client = vzalloc(size);
+	if (!client)
+		return -ENOMEM;
+
+	client->bufsize = bufsize;
+	spin_lock_init(&client->buffer_lock);
+	client->evdev = evdev;
+	evdev_attach_client(evdev, client);
+
+    // 执行设备打开操作
+	error = evdev_open_device(evdev);
+	if (error)
+		goto err_free_client;
+
+	file->private_data = client;
+	nonseekable_open(inode, file);
+
+	return 0;
+
+ err_free_client:
+	evdev_detach_client(evdev, client);
+	kvfree(client);
+	return error;
+}
+
+```
