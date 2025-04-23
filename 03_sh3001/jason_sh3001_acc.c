@@ -9,7 +9,44 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jason Jia");
 MODULE_DESCRIPTION("A driver for sh3001 acc.");
 
+/******************************************************************************/
+static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int8_t *buf);
+
 /**********************************Specific**************************************/
+
+static int configureAccelerometer(struct i2c_client *client, const AccConfig* config)
+{
+    uint8_t reg0 = 0, reg1 = 0, reg2 = 0, reg3 = 0;
+
+    // 配置 ACC_CONFIG_0
+    reg0 |= (config->workMode << 7);
+    reg0 |= (config->dither << 6);
+    reg0 |= (config->digitalFilter << 0);
+
+    // 配置 ACC_CONFIG_1
+    reg1 |= (config->odr & 0x0F);
+
+    // 配置 ACC_CONFIG_2
+    reg2 |= (config->range & 0x07);
+
+    // 配置 ACC_CONFIG_3
+    reg3 |= (config->lpfCutoff << 5);
+    reg3 |= (config->bypassLPF << 3);
+
+    if(jason_sh3001_read_reg(client, ACC_CONFIG_0, &reg0) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, ACC_CONFIG_1, &reg1) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+    
+    if(jason_sh3001_read_reg(client, ACC_CONFIG_2, &reg2) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, ACC_CONFIG_3, &reg3) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    return JASON_SH3001_TRUE;
+}
 
 static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int8_t *buf)
 {
@@ -43,6 +80,16 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
 {
     u_int8_t regData = 0;
     int8_t i = 0;
+    /* C90 变量声明必须在函数开头 */
+    AccConfig config = {
+        .workMode = ACC_WORK_MODE_LOW_POWER,
+        .dither = ACC_DITHER_ENABLE,
+        .digitalFilter = ACC_DIGITAL_FILTER_ENABLE,
+        .odr = ACC_ODR_500HZ,
+        .range = ACC_RANGE_2G,
+        .lpfCutoff = ACC_LPF_CUTOFF_0_25,
+        .bypassLPF = ACC_BYPASS_LPF_NO
+    };
 
     /* The default Chip ID of this device is 0x61 */
     while((regData != 0x61) && (i++ < 3)) {
@@ -57,6 +104,10 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
         dev_info(&client->dev, "check id ok, read data:0x%x, ops->id_data:0x%x\n", regData, 0x61);
     }
 
+    if(configureAccelerometer(client, &config) == JASON_SH3001_FALSE){
+        dev_err(&client->dev, "Configure accelerometer error!\n");
+    }
+    dev_err(&client->dev, "Configure accelerometer succeeded!\n");
 
     return JASON_SH3001_TRUE;
 }
@@ -121,6 +172,7 @@ static int sh3001_acc_remove(struct i2c_client *client)
     return sensor_unregister_device(client, NULL, &jason_sh3001_ops);
 }
 
+/* 这里的 ACCEL_ID_SH3001 一定要有，用于与 linux/sensor-dev.h 配合使用 */
 static const struct i2c_device_id sh3001_acc_id_table[] = {
     {"jason_sh3001_acc", ACCEL_ID_SH3001},
     {},

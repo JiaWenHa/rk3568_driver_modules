@@ -150,4 +150,74 @@
 /* Auxiliary I2C Configuration */
 #define AUX_I2C_CONFIG          (0xFD)
 
+/*****************************Register Configuration****************************/
+
+/* Accelerometer Configuration */
+/* ACC_CONFIG_0 位字段选项 */
+typedef enum {
+    ACC_WORK_MODE_NORMAL = 0, // 正常模式
+    ACC_WORK_MODE_LOW_POWER = 1 // 低功耗模式
+} AccWorkMode;
+
+typedef enum {
+    ACC_DITHER_DISABLE = 0, // 禁用
+    ACC_DITHER_ENABLE = 1 // 启用
+} AccDither;
+
+typedef enum {
+    ACC_DIGITAL_FILTER_DISABLE = 0, // 禁用
+    ACC_DIGITAL_FILTER_ENABLE = 1  // 启用
+} AccDigitalFilter;
+
+/* ACC_CONFIG_1 位字段选项 */
+typedef enum {
+    ACC_ODR_1000HZ = 0x0000,
+    ACC_ODR_500HZ  = 0x0001,
+    ACC_ODR_250HZ  = 0x0010,
+    ACC_ODR_125HZ  = 0x0100,
+    ACC_ODR_63HZ   = 0x0101,
+    ACC_ODR_31HZ   = 0x0110,
+    ACC_ODR_16HZ   = 0x1000,
+    ACC_ODR_2000HZ = 0x1100,
+    ACC_ODR_4000HZ = 0x1101,
+    ACC_ODR_8000HZ = 0x1110
+} AccODR;
+
+/* ACC_CONFIG_2 位字段选项 */
+typedef enum {
+    ACC_RANGE_16G  = 0x010,
+    ACC_RANGE_8G   = 0x011,
+    ACC_RANGE_4G   = 0x100,
+    ACC_RANGE_2G   = 0x101
+} AccRange;
+
+/* ACC_CONFIG_3 位字段选项 */
+typedef enum {
+    ACC_LPF_CUTOFF_0_40  = 0x000, // ODR × 0.40
+    ACC_LPF_CUTOFF_0_25  = 0x001, // ODR × 0.25
+    ACC_LPF_CUTOFF_0_11  = 0x010, // ODR × 0.11
+    ACC_LPF_CUTOFF_0_04  = 0x011, // ODR × 0.04
+    ACC_LPF_CUTOFF_0_02  = 0x100  // ODR × 0.02
+} AccLPFCutoff;
+
+typedef enum {
+    ACC_BYPASS_LPF_NO  = 0,  // 不旁路
+    ACC_BYPASS_LPF_YES = 1   // 旁路
+} AccBypassLPF;
+
+/* 寄存器配置结构体 */
+typedef struct {
+    AccWorkMode workMode;         // ACC_CONFIG_0 [7]
+    AccDither dither;             // ACC_CONFIG_0 [6]
+    AccDigitalFilter digitalFilter; // ACC_CONFIG_0 [0]
+    AccODR odr;                   // ACC_CONFIG_1 [3:0]
+    AccRange range;               // ACC_CONFIG_2 [2:0]
+    AccLPFCutoff lpfCutoff;       // ACC_CONFIG_3 [7:5]
+    AccBypassLPF bypassLPF;       // ACC_CONFIG_3 [3]
+} AccConfig;
+
+
+/* Gyroscope Configuration */
+
+
 #endif
