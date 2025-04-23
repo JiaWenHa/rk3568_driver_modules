@@ -14,6 +14,47 @@ static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int
 
 /**********************************Specific**************************************/
 
+static int configureGyroscope(struct i2c_client *client, const GyroConfig *config)
+{
+    uint8_t reg0 = 0, reg1 = 0, reg2 = 0, reg3 = 0, reg4 = 0, reg5 = 0;
+
+    // 配置 GYRO_CONFIG_0
+    reg0 |= (config->shutDown << 4);
+    reg0 |= (config->digitalFilter << 0);
+
+    // 配置 GYRO_CONFIG_1
+    reg1 |= (config->odr & 0x0F);
+
+    // 配置 GYRO_CONFIG_2
+    reg2 |= (config->lpfBypass << 4);
+    reg2 |= (config->lpfCutoff << 2);
+
+    // 配置 GYRO_CONFIG_3, GYRO_CONFIG_4, GYRO_CONFIG_5
+    reg3 |= (config->fsrX & 0x07);
+    reg4 |= (config->fsrY & 0x07);
+    reg5 |= (config->fsrZ & 0x07);
+
+    if(jason_sh3001_read_reg(client, GYRO_CONFIG_0, &reg0) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, GYRO_CONFIG_1, &reg1) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+    
+    if(jason_sh3001_read_reg(client, GYRO_CONFIG_2, &reg2) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, GYRO_CONFIG_3, &reg3) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, GYRO_CONFIG_2, &reg4) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, GYRO_CONFIG_3, &reg5) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    return JASON_SH3001_TRUE;
+}
+
 static int configureAccelerometer(struct i2c_client *client, const AccConfig* config)
 {
     uint8_t reg0 = 0, reg1 = 0, reg2 = 0, reg3 = 0;
@@ -81,7 +122,7 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
     u_int8_t regData = 0;
     int8_t i = 0;
     /* C90 变量声明必须在函数开头 */
-    AccConfig config = {
+    AccConfig acc_config = {
         .workMode = ACC_WORK_MODE_LOW_POWER,
         .dither = ACC_DITHER_ENABLE,
         .digitalFilter = ACC_DIGITAL_FILTER_ENABLE,
@@ -90,6 +131,18 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
         .lpfCutoff = ACC_LPF_CUTOFF_0_25,
         .bypassLPF = ACC_BYPASS_LPF_NO
     };
+
+    // 初始化陀螺仪配置
+    GyroConfig gyro_config;
+
+    gyro_config.shutDown = GYRO_SHUT_DOWN_NO;
+    gyro_config.digitalFilter = GYRO_DIGITAL_FILTER_ENABLE;
+    gyro_config.odr = GYRO_ODR_500HZ;
+    gyro_config.lpfBypass = GYRO_LPF_BYPASS_DISABLE;
+    gyro_config.lpfCutoff = GYRO_LPF_CUTOFF_00;
+    gyro_config.fsrX = GYRO_FSR_2000DPS;
+    gyro_config.fsrY = GYRO_FSR_2000DPS;
+    gyro_config.fsrZ = GYRO_FSR_2000DPS;
 
     /* The default Chip ID of this device is 0x61 */
     while((regData != 0x61) && (i++ < 3)) {
@@ -104,10 +157,15 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
         dev_info(&client->dev, "check id ok, read data:0x%x, ops->id_data:0x%x\n", regData, 0x61);
     }
 
-    if(configureAccelerometer(client, &config) == JASON_SH3001_FALSE){
+    if(configureAccelerometer(client, &acc_config) == JASON_SH3001_FALSE){
         dev_err(&client->dev, "Configure accelerometer error!\n");
     }
     dev_err(&client->dev, "Configure accelerometer succeeded!\n");
+
+    if(configureGyroscope(client, &gyro_config) == JASON_SH3001_FALSE){
+        dev_err(&client->dev, "Configure gyroscope error!\n");
+    }
+    dev_err(&client->dev, "Configure gyroscope succeeded!\n");
 
     return JASON_SH3001_TRUE;
 }

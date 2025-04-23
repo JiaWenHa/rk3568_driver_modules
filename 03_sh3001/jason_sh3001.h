@@ -152,7 +152,7 @@
 
 /*****************************Register Configuration****************************/
 
-/* Accelerometer Configuration */
+/************************** Accelerometer Configuration *********************/
 /* ACC_CONFIG_0 位字段选项 */
 typedef enum {
     ACC_WORK_MODE_NORMAL = 0, // 正常模式
@@ -205,7 +205,7 @@ typedef enum {
     ACC_BYPASS_LPF_YES = 1   // 旁路
 } AccBypassLPF;
 
-/* 寄存器配置结构体 */
+/* 加速度计寄存器配置结构体 */
 typedef struct {
     AccWorkMode workMode;         // ACC_CONFIG_0 [7]
     AccDither dither;             // ACC_CONFIG_0 [6]
@@ -217,7 +217,66 @@ typedef struct {
 } AccConfig;
 
 
-/* Gyroscope Configuration */
+/************************* Gyroscope Configuration *************************/
 
+/* GYRO_CONFIG_0 位字段选项 */
+typedef enum {
+    GYRO_SHUT_DOWN_NO = 0,   // 当检测到无活动中断时，不关闭
+    GYRO_SHUT_DOWN_YES = 1   // 当检测到无活动中断时，关闭
+} GyroShutDown;
+
+typedef enum {
+    GYRO_DIGITAL_FILTER_DISABLE = 0,  // 禁用
+    GYRO_DIGITAL_FILTER_ENABLE = 1    // 启用
+} GyroDigitalFilter;
+
+/* GYRO_CONFIG_1 位字段选项 */
+typedef enum {
+    GYRO_ODR_1000HZ  = 0x0000,
+    GYRO_ODR_500HZ   = 0x0001,
+    GYRO_ODR_250HZ   = 0x0010,
+    GYRO_ODR_125HZ   = 0x0011,
+    GYRO_ODR_63HZ    = 0x0100,
+    GYRO_ODR_31HZ    = 0x0101,
+    GYRO_ODR_2KHZ    = 0x1000,
+    GYRO_ODR_4KHZ    = 0x1001,
+    GYRO_ODR_8KHZ    = 0x1010,
+    GYRO_ODR_16KHZ   = 0x1011,
+    GYRO_ODR_32KHZ   = 0x1100
+} GyroODR;
+
+/* GYRO_CONFIG_2 位字段选项 */
+typedef enum {
+    GYRO_LPF_BYPASS_DISABLE = 0,  // 不旁路
+    GYRO_LPF_BYPASS_ENABLE = 1    // 旁路
+} GyroLPFBypass;
+
+typedef enum {
+    GYRO_LPF_CUTOFF_00 = 0x00,  // 对应表中值 00
+    GYRO_LPF_CUTOFF_01 = 0x01,  // 对应表中值 01
+    GYRO_LPF_CUTOFF_10 = 0x02,  // 对应表中值 10
+    GYRO_LPF_CUTOFF_11 = 0x03   // 对应表中值 11
+} GyroLPFCutoff;
+
+/* GYRO_CONFIG_3, GYRO_CONFIG_4, GYRO_CONFIG_5 位字段选项 */
+typedef enum {
+    GYRO_FSR_125DPS  = 0x010,  // 125dps
+    GYRO_FSR_250DPS  = 0x011,  // 250dps
+    GYRO_FSR_500DPS  = 0x100,  // 500dps
+    GYRO_FSR_1000DPS = 0x101,  // 1000dps
+    GYRO_FSR_2000DPS = 0x110   // 2000dps
+} GyroFSR;
+
+/* 陀螺仪配置结构体 */
+typedef struct {
+    GyroShutDown shutDown;         // GYRO_CONFIG_0 [4]
+    GyroDigitalFilter digitalFilter; // GYRO_CONFIG_0 [0]
+    GyroODR odr;                   // GYRO_CONFIG_1 [3:0]
+    GyroLPFBypass lpfBypass;       // GYRO_CONFIG_2 [4]
+    GyroLPFCutoff lpfCutoff;       // GYRO_CONFIG_2 [3:2]
+    GyroFSR fsrX;                  // GYRO_CONFIG_3 [2:0]
+    GyroFSR fsrY;                  // GYRO_CONFIG_4 [2:0]
+    GyroFSR fsrZ;                  // GYRO_CONFIG_5 [2:0]
+} GyroConfig;
 
 #endif
