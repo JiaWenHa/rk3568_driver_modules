@@ -279,4 +279,32 @@ typedef struct {
     GyroFSR fsrZ;                  // GYRO_CONFIG_5 [2:0]
 } GyroConfig;
 
+/*********************** Temperature Sensor Configuration **********************/
+
+/* TEMP_SENSOR_CONFIG0 位字段选项 */
+typedef enum {
+    TEMP_SENSOR_DIGITAL_DISABLE = 0,  // 禁用 温度传感器（数字）
+    TEMP_SENSOR_DIGITAL_ENABLE = 1    // 启用 温度传感器（数字）
+} TempSensorDigital;
+
+typedef enum {
+    TEMP_SENSOR_ODR_500HZ = 0x00,
+    TEMP_SENSOR_ODR_250HZ = 0x01,
+    TEMP_SENSOR_ODR_125HZ = 0x02,
+    TEMP_SENSOR_ODR_63HZ  = 0x03
+} TempSensorODR;
+
+/* TEMP_SENSOR_CONFIG2 位字段选项 */
+typedef enum {
+    TEMP_SENSOR_ANALOG_DISABLE = 0,  // 启用 温度传感器（模拟）
+    TEMP_SENSOR_ANALOG_ENABLE = 1    // 禁用 温度传感器（模拟）
+} TempSensorAnalog;
+
+// 温度传感器配置结构体
+typedef struct {
+    TempSensorDigital digitalEnable; // TEMP_SENSOR_CONFIG0 [7]
+    TempSensorODR odr;               // TEMP_SENSOR_CONFIG0 [5:4]
+    TempSensorAnalog analogEnable;   // TEMP_SENSOR_CONFIG2 [2]
+} TempSensorConfig;
+
 #endif

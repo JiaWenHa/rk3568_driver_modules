@@ -9,10 +9,33 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jason Jia");
 MODULE_DESCRIPTION("A driver for sh3001 acc.");
 
-/******************************************************************************/
+/*****************************Function definition********************************/
 static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int8_t *buf);
 
 /**********************************Specific**************************************/
+
+// 配置温度传感器寄存器
+static int configureTempSensor(struct i2c_client *client, const TempSensorConfig *config) {
+    uint8_t reg0 = 0, reg2 = 0;
+
+    // 配置 TEMP_SENSOR_CONFIG0
+    reg0 |= (config->digitalEnable << 7);
+    reg0 |= (config->odr << 4);
+
+    // TEMP_SENSOR_CONFIG1 用于存储温度低 8 位，配置时不需要设置（只读或运行时更新）
+
+    // 配置 TEMP_SENSOR_CONFIG2
+    reg2 |= (config->analogEnable << 2);
+
+    // 写入寄存器
+    if(jason_sh3001_read_reg(client, TEMP_SENSOR_CONFIG_0, &reg0) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    if(jason_sh3001_read_reg(client, TEMP_SENSOR_CONFIG_2, &reg2) == JASON_SH3001_FALSE)
+        return JASON_SH3001_FALSE;
+
+    return JASON_SH3001_TRUE;
+}
 
 static int configureGyroscope(struct i2c_client *client, const GyroConfig *config)
 {
@@ -132,6 +155,13 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
         .bypassLPF = ACC_BYPASS_LPF_NO
     };
 
+    // 温度传感器配置
+    TempSensorConfig temp_sensor_config = {
+        .digitalEnable = TEMP_SENSOR_DIGITAL_ENABLE,
+        .odr = TEMP_SENSOR_ODR_63HZ,
+        .analogEnable = TEMP_SENSOR_ANALOG_DISABLE
+    };
+
     // 初始化陀螺仪配置
     GyroConfig gyro_config;
 
@@ -143,6 +173,7 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
     gyro_config.fsrX = GYRO_FSR_2000DPS;
     gyro_config.fsrY = GYRO_FSR_2000DPS;
     gyro_config.fsrZ = GYRO_FSR_2000DPS;
+
 
     /* The default Chip ID of this device is 0x61 */
     while((regData != 0x61) && (i++ < 3)) {
@@ -166,6 +197,11 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
         dev_err(&client->dev, "Configure gyroscope error!\n");
     }
     dev_err(&client->dev, "Configure gyroscope succeeded!\n");
+
+    if(configureTempSensor(client, &temp_sensor_config) == JASON_SH3001_FALSE){
+        dev_err(&client->dev, "Configure temp_sensor error!\n");
+    }
+    dev_err(&client->dev, "Configure temp_sensor succeeded!\n");
 
     return JASON_SH3001_TRUE;
 }
