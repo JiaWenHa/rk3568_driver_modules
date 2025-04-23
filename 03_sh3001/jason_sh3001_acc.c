@@ -2,7 +2,9 @@
 #include <linux/kernel.h>
 #include <linux/i2c.h>
 #include <linux/sensor-dev.h>
+#include <linux/input.h>
 #include <linux/types.h>
+#include <linux/interrupt.h>
 #include "jason_sh3001.h"
 
 MODULE_LICENSE("GPL");
@@ -10,7 +12,9 @@ MODULE_AUTHOR("Jason Jia");
 MODULE_DESCRIPTION("A driver for sh3001 acc.");
 
 /*****************************Function definition********************************/
-static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int8_t *buf);
+static int jason_sh3001_read_reg(struct i2c_client *client, uint8_t addr, uint8_t *buf);
+static int jason_sh3001_write_reg(struct i2c_client *client, uint8_t addr, uint8_t data);
+static int jason_sh3001_read_regs(struct i2c_client *client, uint8_t addr, int len, uint8_t *buf);
 
 /**********************************Specific**************************************/
 
@@ -28,10 +32,10 @@ static int configureTempSensor(struct i2c_client *client, const TempSensorConfig
     reg2 |= (config->analogEnable << 2);
 
     // 写入寄存器
-    if(jason_sh3001_read_reg(client, TEMP_SENSOR_CONFIG_0, &reg0) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, TEMP_SENSOR_CONFIG_0, reg0) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, TEMP_SENSOR_CONFIG_2, &reg2) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, TEMP_SENSOR_CONFIG_2, reg2) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
     return JASON_SH3001_TRUE;
@@ -57,22 +61,22 @@ static int configureGyroscope(struct i2c_client *client, const GyroConfig *confi
     reg4 |= (config->fsrY & 0x07);
     reg5 |= (config->fsrZ & 0x07);
 
-    if(jason_sh3001_read_reg(client, GYRO_CONFIG_0, &reg0) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, GYRO_CONFIG_0, reg0) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, GYRO_CONFIG_1, &reg1) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, GYRO_CONFIG_1, reg1) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
     
-    if(jason_sh3001_read_reg(client, GYRO_CONFIG_2, &reg2) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, GYRO_CONFIG_2, reg2) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, GYRO_CONFIG_3, &reg3) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, GYRO_CONFIG_3, reg3) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, GYRO_CONFIG_2, &reg4) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, GYRO_CONFIG_4, reg4) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, GYRO_CONFIG_3, &reg5) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, GYRO_CONFIG_5, reg5) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
     return JASON_SH3001_TRUE;
@@ -97,22 +101,43 @@ static int configureAccelerometer(struct i2c_client *client, const AccConfig* co
     reg3 |= (config->lpfCutoff << 5);
     reg3 |= (config->bypassLPF << 3);
 
-    if(jason_sh3001_read_reg(client, ACC_CONFIG_0, &reg0) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, ACC_CONFIG_0, reg0) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, ACC_CONFIG_1, &reg1) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, ACC_CONFIG_1, reg1) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
     
-    if(jason_sh3001_read_reg(client, ACC_CONFIG_2, &reg2) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, ACC_CONFIG_2, reg2) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
-    if(jason_sh3001_read_reg(client, ACC_CONFIG_3, &reg3) == JASON_SH3001_FALSE)
+    if(jason_sh3001_write_reg(client, ACC_CONFIG_3, reg3) == JASON_SH3001_FALSE)
         return JASON_SH3001_FALSE;
 
     return JASON_SH3001_TRUE;
 }
 
-static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int8_t *buf)
+static int jason_sh3001_write_reg(struct i2c_client *client, uint8_t addr, uint8_t data)
+{
+	struct i2c_msg msg;
+	uint8_t buf[2];
+	int ret;
+
+	buf[0] = addr;	//寄存器地址
+	buf[1] = data;	//要写入寄存器中的数据
+
+	msg.flags = !I2C_M_RD;	//写
+	msg.addr  = client->addr;//器件地址
+	msg.len   = 2;
+	msg.buf   = buf;
+
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret == 1)
+		return JASON_SH3001_TRUE;
+	else
+		return JASON_SH3001_FALSE;
+}
+
+static int jason_sh3001_read_reg(struct i2c_client *client, uint8_t addr, uint8_t *buf)
 {
     struct i2c_msg msgs[2];
     int ret;
@@ -133,7 +158,35 @@ static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int
     ret = i2c_transfer(client->adapter, msgs, 2);
 
     if (ret != 2) {
-        dev_err(&client->dev, "I2C transfer failed: ret=%d\n", ret);
+        dev_err(&client->dev, "I2C transfer reg failed: ret=%d\n", ret);
+        return JASON_SH3001_FALSE;
+    }
+
+    return JASON_SH3001_TRUE;
+}
+
+static int jason_sh3001_read_regs(struct i2c_client *client, uint8_t addr, int len, uint8_t *buf)
+{
+    struct i2c_msg msgs[2];
+    int ret;
+
+    // 第1步：写操作，指定要读取的寄存器地址
+    msgs[0].flags = !I2C_M_RD; // 写操作标志
+    msgs[0].addr = client->addr; // 器件地址，即I2C设备的地址
+    msgs[0].len = 1; // 要发送的数据长度，这里只发送1个字节的寄存器地址
+    msgs[0].buf = &addr; // 要发送的数据，即要读取的寄存器地址
+
+    // 第2步：读操作，从指定寄存器读取数据
+    msgs[1].flags = I2C_M_RD; // 读操作标志
+    msgs[1].addr = client->addr; // 器件地址，与写操作使用相同的设备地址
+    msgs[1].len = len; // 要读取的数据长度，这里只读取1个字节
+    msgs[1].buf = buf; // 存储读取数据的缓冲区
+
+    // 执行 I2C 传输操作，发送两个消息（写和读）
+    ret = i2c_transfer(client->adapter, msgs, 2);
+
+    if (ret != 2) {
+        dev_err(&client->dev, "I2C transfer regs failed: ret=%d\n", ret);
         return JASON_SH3001_FALSE;
     }
 
@@ -142,11 +195,11 @@ static int jason_sh3001_read_reg(struct i2c_client *client, u_int8_t addr, u_int
 
 static int jason_sh3001_sensor_init(struct i2c_client *client)
 {
-    u_int8_t regData = 0;
+    uint8_t regData = 0;
     int8_t i = 0;
     /* C90 变量声明必须在函数开头 */
     AccConfig acc_config = {
-        .workMode = ACC_WORK_MODE_LOW_POWER,
+        .workMode = ACC_WORK_MODE_NORMAL,
         .dither = ACC_DITHER_ENABLE,
         .digitalFilter = ACC_DIGITAL_FILTER_ENABLE,
         .odr = ACC_ODR_500HZ,
@@ -210,7 +263,13 @@ static int jason_sh3001_sensor_init(struct i2c_client *client)
 
 static int sensor_init(struct i2c_client *client)
 {
+    struct sensor_private_data *sensor = 
+        (struct sensor_private_data *)i2c_get_clientdata(client);
+    struct sensor_platform_data *pdata = sensor->pdata;
+
     int ret = -1;
+    
+    dev_info(&client->dev, "irq enable: %d", pdata->irq_enable);
 
     /* Initialize sh3001 sensor */
     ret = jason_sh3001_sensor_init(client);
@@ -229,7 +288,43 @@ static int sensor_active(struct i2c_client *client, int enable, int rate)
 
 static int sensor_report_value(struct i2c_client *client)
 {
-    dev_info(&client->dev, "Enter sensor_report_value.\n");
+    struct sensor_private_data *sensor = 
+        (struct sensor_private_data *)i2c_get_clientdata(client);
+    struct sensor_platform_data *pdata = sensor->pdata;
+    struct sensor_axis axis;
+    uint8_t buf[6] = {0};
+    uint16_t x, y, z;
+    int ret = -1;
+
+    memset(buf, 0, sizeof(buf));
+    do {
+        ret = jason_sh3001_read_regs(client, sensor->ops->read_reg,
+            sensor->ops->read_len, buf);
+        if (ret < 0) {
+            dev_err(&client->dev, "%s:%d jason_sh3001_read_regs error!\n", __func__, __LINE__);
+            return ret;
+        }
+    } while (0);
+
+	x = ((buf[1] << 8) & 0xFF00) + (buf[0] & 0xFF);
+	y = ((buf[3] << 8) & 0xFF00) + (buf[2] & 0xFF);
+	z = ((buf[5] << 8) & 0xFF00) + (buf[4] & 0xFF);
+	axis.x = (pdata->orientation[0]) * x + (pdata->orientation[1]) * y + (pdata->orientation[2]) * z;
+	axis.y = (pdata->orientation[3]) * x + (pdata->orientation[4]) * y + (pdata->orientation[5]) * z;
+	axis.z = (pdata->orientation[6]) * x + (pdata->orientation[7]) * y + (pdata->orientation[8]) * z;
+
+    if (sensor->status_cur == SENSOR_ON) {
+		/* Report acceleration sensor information */
+		input_report_abs(sensor->input_dev, ABS_X, axis.x);
+		input_report_abs(sensor->input_dev, ABS_Y, axis.y);
+		input_report_abs(sensor->input_dev, ABS_Z, axis.z);
+		input_sync(sensor->input_dev);
+	}
+
+	mutex_lock(&(sensor->data_mutex));
+	sensor->axis = axis;
+	mutex_unlock(&(sensor->data_mutex));
+
     return 0;
 }
 
@@ -247,6 +342,7 @@ static struct sensor_operate jason_sh3001_ops = {
 	.int_ctrl_reg = -1,
 	.int_status_reg = -1,
     .range = {-32768, 32768},
+    .trig = IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
     .init = sensor_init,
     .active = sensor_active,
 	.report	= sensor_report_value, 
