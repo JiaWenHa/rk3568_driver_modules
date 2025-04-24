@@ -1,6 +1,8 @@
 #ifndef __JASON_SH30001_H__
 #define __JASON_SH30001_H__
 
+#include "jason_sensor_dev.h"
+
 /******************************Custom Macro************************************/
 #define JASON_SH3001_TRUE		(0)
 #define JASON_SH3001_FALSE	    (-1)
@@ -306,5 +308,13 @@ typedef struct {
     TempSensorODR odr;               // TEMP_SENSOR_CONFIG0 [5:4]
     TempSensorAnalog analogEnable;   // TEMP_SENSOR_CONFIG2 [2]
 } TempSensorConfig;
+
+extern int jason_sensor_register_device(struct i2c_client *client,
+    struct sensor_platform_data *slave_pdata,
+    const struct i2c_device_id *devid,
+    struct sensor_operate *ops);
+extern int jason_sensor_unregister_device(struct i2c_client *client,
+        struct sensor_platform_data *slave_pdata,
+        struct sensor_operate *ops);
 
 #endif

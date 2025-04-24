@@ -1,7 +1,6 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/i2c.h>
-#include <linux/sensor-dev.h>
 #include <linux/input.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
@@ -353,13 +352,13 @@ static struct sensor_operate jason_sh3001_ops = {
 static int sh3001_acc_probe(struct i2c_client *client, const struct i2c_device_id *dev_id)
 {
     pr_info("sh3001_acc driver module loaded.\n");
-    return sensor_register_device(client, NULL, dev_id, &jason_sh3001_ops);
+    return jason_sensor_register_device(client, NULL, dev_id, &jason_sh3001_ops);
 }
 
 static int sh3001_acc_remove(struct i2c_client *client)
 {
     pr_info("sh3001_acc driver module unloaded.\n");
-    return sensor_unregister_device(client, NULL, &jason_sh3001_ops);
+    return jason_sensor_unregister_device(client, NULL, &jason_sh3001_ops);
 }
 
 /* 这里的 ACCEL_ID_SH3001 一定要有，用于与 linux/sensor-dev.h 配合使用 */
