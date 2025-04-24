@@ -8,9 +8,6 @@
 #define SENSOR_ON		1
 #define SENSOR_OFF		0
 #define SENSOR_UNKNOW_DATA	-1
-
-#define GPIO_HIGH 1
-#define GPIO_LOW 0
  
 enum sensor_id {
     ID_INVALID = 0,
@@ -129,7 +126,6 @@ struct sensor_flag {
     wait_queue_head_t open_wq;
 };
 
-
 struct sensor_operate {
     char *name;
     int type;
@@ -230,19 +226,6 @@ struct akm_platform_data {
     int gpio_RST;
 };
 
-extern int sensor_register_device(struct i2c_client *client,
-            struct sensor_platform_data *slave_pdata,
-            const struct i2c_device_id *devid,
-            struct sensor_operate *ops);
-
-
-extern int sensor_unregister_device(struct i2c_client *client,
-            struct sensor_platform_data *slave_pdata,
-            struct sensor_operate *ops);
-
-extern void sensor_shutdown(struct i2c_client *client);
-extern const struct dev_pm_ops sensor_pm_ops;
-
 #define DBG(x...)
 
 #define GSENSOR_IOCTL_MAGIC			'a'
@@ -255,8 +238,6 @@ extern const struct dev_pm_ops sensor_pm_ops;
 #define GSENSOR_IOCTL_START					_IO(GSENSOR_IOCTL_MAGIC, 0x03)
 #define GSENSOR_IOCTL_GETDATA					_IOR(GSENSOR_IOCTL_MAGIC, 0x08, char[GBUFF_SIZE+1])
 #define GSENSOR_IOCTL_APP_SET_RATE			_IOW(GSENSOR_IOCTL_MAGIC, 0x10, short)
-#define GSENSOR_IOCTL_GET_CALIBRATION		_IOR(GSENSOR_IOCTL_MAGIC, 0x11, int[3])
-
 
 #define COMPASS_IOCTL_MAGIC					'c'
 /* IOCTLs for APPs */
@@ -303,7 +284,6 @@ extern const struct dev_pm_ops sensor_pm_ops;
 #define L3G4200D_IOCTL_GET_DELAY _IOR(L3G4200D_IOCTL_BASE, 1, int)
 #define L3G4200D_IOCTL_SET_ENABLE _IOW(L3G4200D_IOCTL_BASE, 2, int)
 #define L3G4200D_IOCTL_GET_ENABLE _IOR(L3G4200D_IOCTL_BASE, 3, int)
-#define L3G4200D_IOCTL_GET_CALIBRATION _IOR(L3G4200D_IOCTL_BASE, 4, int[3])
 
 extern int sensor_rx_data(struct i2c_client *client, char *rxData, int length);
 extern int sensor_tx_data(struct i2c_client *client, char *txData, int length);
@@ -313,5 +293,14 @@ extern int sensor_tx_data_normal(struct i2c_client *client, char *buf, int num);
 extern int sensor_rx_data_normal(struct i2c_client *client, char *buf, int num);
 extern int sensor_write_reg_normal(struct i2c_client *client, char value);
 extern int sensor_read_reg_normal(struct i2c_client *client);
+
+extern int jason_sensor_register_device(struct i2c_client *client,
+    struct sensor_platform_data *slave_pdata,
+    const struct i2c_device_id *devid,
+    struct sensor_operate *ops);
+extern int jason_sensor_unregister_device(struct i2c_client *client,
+        struct sensor_platform_data *slave_pdata,
+        struct sensor_operate *ops);
+extern void jason_sensor_shutdown(struct i2c_client *client);
  
 #endif

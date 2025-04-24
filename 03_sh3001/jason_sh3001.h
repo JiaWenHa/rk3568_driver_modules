@@ -309,12 +309,4 @@ typedef struct {
     TempSensorAnalog analogEnable;   // TEMP_SENSOR_CONFIG2 [2]
 } TempSensorConfig;
 
-extern int jason_sensor_register_device(struct i2c_client *client,
-    struct sensor_platform_data *slave_pdata,
-    const struct i2c_device_id *devid,
-    struct sensor_operate *ops);
-extern int jason_sensor_unregister_device(struct i2c_client *client,
-        struct sensor_platform_data *slave_pdata,
-        struct sensor_operate *ops);
-
 #endif
