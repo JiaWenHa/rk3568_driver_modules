@@ -10,7 +10,7 @@
 #define SENSOR_UNKNOW_DATA	-1
  
 enum sensor_id {
-    ID_INVALID = 0,
+    SENSOR_NUM_ID_LOW = 0,
 
     ANGLE_ID_ALL,
     ANGLE_ID_KXTIK,
@@ -107,7 +107,7 @@ enum sensor_id {
     HALL_ID_ALL,
     HALL_ID_OCH165T,
 
-    SENSOR_NUM_ID,
+    SENSOR_NUM_ID_HIGH,
 };
 
 struct sensor_axis {
@@ -150,20 +150,20 @@ struct sensor_operate {
     struct miscdevice *misc_dev;
 };
 
-/* Platform data for the sensor */
+/* Private data for the sensor */
 struct sensor_private_data {
     int type;
     struct i2c_client *client;
     struct input_dev *input_dev;
     int stop_work;
-    struct delayed_work delaywork;
+    struct delayed_work delaywork; // 延迟执行的工作
     struct sensor_axis axis;
     char sensor_data[40];
     atomic_t is_factory;
     wait_queue_head_t is_factory_ok;
     struct mutex data_mutex;
     struct mutex operation_mutex;
-    struct mutex sensor_mutex;
+    struct mutex sensor_mutex; // 用于确保传感器数据上报互斥
     struct mutex i2c_mutex;
     int status_cur;
     int start_count;
@@ -177,19 +177,19 @@ struct sensor_private_data {
 };
 
 struct sensor_platform_data {
-    int type;
+    int type; // 传感器类型
     int irq;
     int irq_pin;
     int power_pin;
     int reset_pin;
     int standby_pin;
-    int irq_enable;
+    int irq_enable; // 是否使能中断
     int poll_delay_ms;
     int x_min;
     int y_min;
     int z_min;
     int factory;
-    int layout;
+    int layout; /* 用来设置传感器的坐标变换 */
     unsigned char address;
     unsigned long irq_flags;
     signed char orientation[9];
@@ -228,16 +228,23 @@ struct akm_platform_data {
 
 #define DBG(x...)
 
-#define GSENSOR_IOCTL_MAGIC			'a'
+#define SENSOR_ACCEL_IOCTL_MAGIC			'a'
 #define GBUFF_SIZE				12	/* Rx buffer size */
 
-/* IOCTLs for MMA8452 library */
-#define GSENSOR_IOCTL_INIT						_IO(GSENSOR_IOCTL_MAGIC, 0x01)
-#define GSENSOR_IOCTL_RESET					_IO(GSENSOR_IOCTL_MAGIC, 0x04)
-#define GSENSOR_IOCTL_CLOSE					_IO(GSENSOR_IOCTL_MAGIC, 0x02)
-#define GSENSOR_IOCTL_START					_IO(GSENSOR_IOCTL_MAGIC, 0x03)
-#define GSENSOR_IOCTL_GETDATA					_IOR(GSENSOR_IOCTL_MAGIC, 0x08, char[GBUFF_SIZE+1])
-#define GSENSOR_IOCTL_APP_SET_RATE			_IOW(GSENSOR_IOCTL_MAGIC, 0x10, short)
+/* IOCTLs for sensor accel library */
+#define SENSOR_ACCEL_IOCTL_CLOSE					_IO(SENSOR_ACCEL_IOCTL_MAGIC, 0x02)
+#define SENSOR_ACCEL_IOCTL_START					_IO(SENSOR_ACCEL_IOCTL_MAGIC, 0x03)
+#define SENSOR_ACCEL_IOCTL_GETDATA					_IOR(SENSOR_ACCEL_IOCTL_MAGIC, 0x08, char[GBUFF_SIZE+1])
+#define SENSOR_ACCEL_IOCTL_SET_RATE			        _IOW(SENSOR_ACCEL_IOCTL_MAGIC, 0x10, short)
+
+#define SENSOR_GYRO_IOCTL_MAGIC			'g'
+#define GBUFF_SIZE				12	/* Rx buffer size */
+
+/* IOCTLs for sensor accel library */
+#define SENSOR_GYRO_IOCTL_CLOSE					_IO(SENSOR_GYRO_IOCTL_MAGIC, 0x02)
+#define SENSOR_GYRO_IOCTL_START					_IO(SENSOR_GYRO_IOCTL_MAGIC, 0x03)
+#define SENSOR_GYRO_IOCTL_GETDATA					_IOR(SENSOR_GYRO_IOCTL_MAGIC, 0x08, char[GBUFF_SIZE+1])
+#define SENSOR_GYRO_IOCTL_SET_RATE			        _IOW(SENSOR_GYRO_IOCTL_MAGIC, 0x10, short)
 
 #define COMPASS_IOCTL_MAGIC					'c'
 /* IOCTLs for APPs */
@@ -270,20 +277,12 @@ struct akm_platform_data {
 #define PRESSURE_IOCTL_DISABLE			_IOW(PRESSURE_IOCTL_MAGIC, 3, int *)
 #define PRESSURE_IOCTL_SET_DELAY			_IOW(PRESSURE_IOCTL_MAGIC, 4, int *)
 
-
 #define TEMPERATURE_IOCTL_MAGIC			't'
 #define TEMPERATURE_IOCTL_GET_ENABLED	_IOR(TEMPERATURE_IOCTL_MAGIC, 1, int *)
 #define TEMPERATURE_IOCTL_ENABLE			_IOW(TEMPERATURE_IOCTL_MAGIC, 2, int *)
 #define TEMPERATURE_IOCTL_DISABLE		_IOW(TEMPERATURE_IOCTL_MAGIC, 3, int *)
 #define TEMPERATURE_IOCTL_SET_DELAY		_IOW(TEMPERATURE_IOCTL_MAGIC, 4, int *)
 
-
-#define L3G4200D_IOCTL_BASE 77
-
-#define L3G4200D_IOCTL_SET_DELAY _IOW(L3G4200D_IOCTL_BASE, 0, int)
-#define L3G4200D_IOCTL_GET_DELAY _IOR(L3G4200D_IOCTL_BASE, 1, int)
-#define L3G4200D_IOCTL_SET_ENABLE _IOW(L3G4200D_IOCTL_BASE, 2, int)
-#define L3G4200D_IOCTL_GET_ENABLE _IOR(L3G4200D_IOCTL_BASE, 3, int)
 
 extern int sensor_rx_data(struct i2c_client *client, char *rxData, int length);
 extern int sensor_tx_data(struct i2c_client *client, char *txData, int length);

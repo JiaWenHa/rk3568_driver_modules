@@ -9,6 +9,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jason Jia");
 MODULE_DESCRIPTION("A driver for sh3001 acc.");
+MODULE_SOFTDEP("pre: jason_sensor_dev");
 
 /*****************************Function definition********************************/
 static int jason_sh3001_read_reg(struct i2c_client *client, uint8_t addr, uint8_t *buf);
