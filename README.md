@@ -11,6 +11,7 @@
 | `02_02_i2c_template` | i2c驱动最简单模板 |
 | `03_sh3001` | 六轴 IMU SH3001 驱动 |
 | `04_gpio_irq` | gpio 中断驱动程序 |
+| `05_gpio_irq_tasklet` | 带中断下文的 gpio 中断驱动程序 |
 
 # 2. 实现现象
 
