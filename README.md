@@ -13,6 +13,8 @@
 | `04_gpio_irq` | gpio 中断驱动程序 |
 | `05_gpio_irq_tasklet` | 使用 tasklet 作为中断下文的 gpio 中断驱动程序 |
 | `06_gpio_irq_softirq` | 使用 softirq 作为中断下文的 gpio 中断驱动程序 |
+| `07_gpio_irq_workqueue` | 使用 workqueue 作为中断下文的 gpio 中断驱动程序 |
+
 
 
 
